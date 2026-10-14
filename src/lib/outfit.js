@@ -140,7 +140,7 @@ function makeHeadline({ outfit, swing, peakW, coldW }) {
   const inner = innerwear ? ' 발열 내의도 챙겨 입으세요.' : ''
   if (!outer) return `${base}, 겉옷 없이 충분해요.`
   if (swing >= 8) {
-    return `${coldW.label}는 ${round(coldW.feels)}°, 낮엔 ${round(peakW.feels)}°까지 올라가요. 안에는 ${base}, 겉옷은 벗기 쉬운 ${outer.name}!${inner}`
+    return `체감온도가 ${coldW.label}는 ${round(coldW.feels)}°, 낮엔 ${round(peakW.feels)}°까지 올라가요. 안에는 ${base}, 겉옷은 벗기 쉬운 ${outer.name}!${inner}`
   }
   return `${base}, 위에 ${josa(outer.name, '을', '를')} 걸치세요.${inner}`
 }

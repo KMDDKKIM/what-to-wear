@@ -276,6 +276,17 @@ h2 {
   font-weight: 600;
 }
 
+.done-btn {
+  width: 100%;
+  border: none;
+  background: var(--accent-fill);
+  color: var(--accent-strong);
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
 .loc-btn {
   width: 100%;
   border: none;
@@ -829,18 +840,18 @@ button.match-card:active {
 /* 시간별 */
 .timeline {
   display: flex;
-  gap: 4px;
-  overflow-x: auto;
+  gap: 2px;
   padding-bottom: 4px;
 }
 
 .t-col {
   flex: 1;
-  min-width: 36px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: -0.3px;
   gap: 4px;
 }
 
