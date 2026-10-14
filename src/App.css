@@ -1,14 +1,17 @@
 :root {
-  --bg: #f3f6f8;
+  --bg: #fdf8f8;
   --card: #ffffff;
-  --text: #23292e;
-  --muted: #7b858c;
-  --accent: #2f8f83;
-  --accent-soft: #dcefec;
+  --text: #2e2628;
+  --muted: #8f8285;
+  /* 연한 로즈 핑크: accent는 테두리·그래프, strong은 글자, fill은 선택된 버튼, soft는 은은한 배경 */
+  --accent: #eba2b3;
+  --accent-strong: #b5546c;
+  --accent-fill: #f8d9e0;
+  --accent-soft: #fcedf0;
   --cool: #5b9dff;
   --cool-soft: #e3eeff;
-  --border: #e0e7ea;
-  --shadow: 0 2px 10px rgba(40, 70, 90, 0.08);
+  --border: #f3e4e7;
+  --shadow: 0 2px 10px rgba(150, 90, 100, 0.08);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   color: var(--text);
   background: var(--bg);
@@ -16,13 +19,15 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #171b1e;
-    --card: #242a2e;
-    --text: #e9eef1;
-    --muted: #95a0a7;
-    --accent-soft: #1f3d39;
+    --bg: #1d191a;
+    --card: #2a2426;
+    --text: #f3eaec;
+    --muted: #a8999c;
+    --accent-strong: #f2a9ba;
+    --accent-fill: #5a3540;
+    --accent-soft: #3d2a2f;
     --cool-soft: #26344a;
-    --border: #343c41;
+    --border: #3d3437;
     --shadow: none;
   }
 }
@@ -205,8 +210,8 @@ h2 {
 .install-btn {
   margin-top: 10px;
   border: none;
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-fill);
+  color: var(--accent-strong);
   border-radius: 10px;
   padding: 8px 14px;
   font-weight: 600;
@@ -265,9 +270,10 @@ h2 {
 }
 
 .chip.on {
-  background: var(--accent);
+  background: var(--accent-fill);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent-strong);
+  font-weight: 600;
 }
 
 .loc-btn {
@@ -371,8 +377,8 @@ h2 {
 }
 
 .tab.on {
-  background: var(--text);
-  color: var(--bg);
+  background: var(--accent-fill);
+  color: var(--accent-strong);
 }
 
 .loading,
@@ -699,7 +705,7 @@ button.match-card:active {
 
 .badge.point {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .match-reason {
@@ -725,7 +731,7 @@ button.match-card:active {
 .shop-link .ad {
   font-size: 10px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-strong);
   margin-right: 4px;
 }
 
