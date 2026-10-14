@@ -19,6 +19,7 @@ const SIDES = {
 export default function ColorPage({ plan, dayLabel, gender, tone, onTone }) {
   const [side, setSide] = useState('top')
   const [selectedId, setSelectedId] = useState(null)
+  const [picked, setPicked] = useState(null) // 크게 볼 조합 { color, type }
   const resultRef = useRef(null)
 
   // 색을 고르면 결과가 보이도록 스크롤
@@ -38,12 +39,14 @@ export default function ColorPage({ plan, dayLabel, gender, tone, onTone }) {
   const switchSide = (next) => {
     setSide(next)
     setSelectedId(null)
+    setPicked(null)
   }
 
   // 오늘의 추천 조합을 누르면 그 상의 색으로 바로 찾기
   const pickToday = (topId) => {
     setSide('top')
     setSelectedId(topId)
+    setPicked(null)
   }
 
   return (
@@ -94,7 +97,10 @@ export default function ColorPage({ plan, dayLabel, gender, tone, onTone }) {
             <button
               key={c.id}
               className={`palette-item ${selectedId === c.id ? 'on' : ''}`}
-              onClick={() => setSelectedId(c.id)}
+              onClick={() => {
+                setSelectedId(c.id)
+                setPicked(null)
+              }}
             >
               <span className="swatch big-swatch" style={{ background: c.hex }} />
               <span>
@@ -111,6 +117,7 @@ export default function ColorPage({ plan, dayLabel, gender, tone, onTone }) {
           <h2>
             {selected.name} {SIDES[side].label}에 어울리는 {SIDES[other].label}
           </h2>
+          <p className="hint">마음에 드는 조합을 누르면 크게 보여드려요.</p>
           {Object.entries(MATCH_TYPES).map(([type, { label, reason }]) => {
             const group = matches.filter((m) => m.type === type).slice(0, MAX_PER_GROUP)
             if (!group.length) return null
@@ -124,33 +131,78 @@ export default function ColorPage({ plan, dayLabel, gender, tone, onTone }) {
                   {group.map(({ color }) => {
                     const top = side === 'top' ? selected : color
                     const bottom = side === 'top' ? color : selected
-                    return (
-                      <div key={color.id} className={`match-card ${type}`}>
+                    const content = (
+                      <>
                         <OutfitPreview top={top.hex} bottom={bottom.hex} />
                         <strong>
                           {sparkle(other, color.id) && '✨'}
                           {color.name}
                         </strong>
-                        {type !== 'avoid' && <ShopLink link={shopLinks(color.name, itemNames(other), gender)[0]} compact />}
-                      </div>
+                      </>
+                    )
+                    // 피할 조합은 눌러볼 필요가 없으니 그림만
+                    if (type === 'avoid') {
+                      return (
+                        <div key={color.id} className="match-card avoid">
+                          {content}
+                        </div>
+                      )
+                    }
+                    return (
+                      <button key={color.id} className={`match-card ${type}`} onClick={() => setPicked({ color, type })}>
+                        {content}
+                      </button>
                     )
                   })}
                 </div>
               </div>
             )
           })}
-          <div className="selected-shop">
-            <span className="shop-title">{selected.name} {SIDES[side].label}도 없다면?</span>
-            <ShopLink link={shopLinks(selected.name, itemNames(side), gender)[0]} />
-          </div>
         </section>
+      )}
+
+      {selected && picked && (
+        <ComboSheet
+          top={side === 'top' ? selected : picked.color}
+          bottom={side === 'top' ? picked.color : selected}
+          type={picked.type}
+          shop={(category, c) => shopLinks(c.name, itemNames(category), gender)[0]}
+          onClose={() => setPicked(null)}
+        />
       )}
     </div>
   )
 }
 
+// 고른 조합을 크게 보여주고, 그 색 옷이 없을 때 쇼핑으로 연결
+function ComboSheet({ top, bottom, type, shop, onClose }) {
+  const { label, reason } = MATCH_TYPES[type]
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <section className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <button className="sheet-close" onClick={onClose} aria-label="닫기">
+          ✕
+        </button>
+        <OutfitPreview top={top.hex} bottom={bottom.hex} />
+        <h2>
+          {top.name} 상의 + {bottom.name} 하의
+        </h2>
+        <p className="group-head sheet-reason">
+          <span className={`badge ${type}`}>{label}</span>
+          <span className="match-reason">{reason}</span>
+        </p>
+        <div className="sheet-shop">
+          <span className="shop-title">이 색 옷이 없다면?</span>
+          <ShopLink link={shop('top', top)} />
+          <ShopLink link={shop('bottom', bottom)} />
+        </div>
+      </section>
+    </div>
+  )
+}
+
 // 색 옷이 없을 때 쇼핑으로 연결 (광고 상품이면 "광고" 표시)
-function ShopLink({ link, compact = false }) {
+function ShopLink({ link }) {
   return (
     <a
       href={link.url}
@@ -160,7 +212,7 @@ function ShopLink({ link, compact = false }) {
       title={`${link.label} 찾아보기`}
     >
       {link.sponsored && <span className="ad">광고</span>}
-      🛍️ {compact ? '없다면 찾기' : `${link.label} 찾아보기`}
+      🛍️ {link.label} 찾아보기
     </a>
   )
 }
