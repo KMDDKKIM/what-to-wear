@@ -278,7 +278,7 @@ export default function App() {
                       <span className="wardrobe-label">{label}</span>
                       <strong className="wardrobe-pick">{best.name}</strong>
                       {others.length > 0 && (
-                        <span className="wardrobe-alt">이것도 괜찮아요 · {others.map((o) => o.name).join(', ')}</span>
+                        <span className="wardrobe-alt">또는 {others.map((o) => o.name).join(', ')}도 괜찮아요</span>
                       )}
                     </div>
                   </div>
