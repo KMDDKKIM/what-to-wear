@@ -17,8 +17,8 @@ export default defineConfig(({ command, isPreview }) => ({
         description: '집에서 나가고 들어오는 시간과 낮 최고기온에 맞춰 오늘 옷차림을 알려드려요.',
         lang: 'ko',
         display: 'standalone',
-        background_color: '#FDF8F8',
-        theme_color: '#FDF8F8',
+        background_color: '#FFFAFB',
+        theme_color: '#FFFAFB',
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },

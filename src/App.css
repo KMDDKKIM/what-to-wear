@@ -1,16 +1,16 @@
 :root {
-  --bg: #fdf8f8;
+  --bg: #fffafb;
   --card: #ffffff;
   --text: #2e2628;
   --muted: #8f8285;
   /* 연한 로즈 핑크: accent는 테두리·그래프, strong은 글자, fill은 선택된 버튼, soft는 은은한 배경 */
-  --accent: #eba2b3;
+  --accent: #f2bccb;
   --accent-strong: #b5546c;
-  --accent-fill: #f8d9e0;
-  --accent-soft: #fcedf0;
+  --accent-fill: #fce6ec;
+  --accent-soft: #fef3f6;
   --cool: #5b9dff;
   --cool-soft: #e3eeff;
-  --border: #f3e4e7;
+  --border: #f7ebee;
   --shadow: 0 2px 10px rgba(150, 90, 100, 0.08);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   color: var(--text);
