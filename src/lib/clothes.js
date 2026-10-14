@@ -3,6 +3,8 @@
 // range: 이 옷이 적당한 체감온도 범위 [최저, 최고]
 //   - 상의·하의: 나가 있는 동안 계속 입으니 "낮 최고 체감온도"로 판단
 //   - 겉옷·내의: 오갈 때 필요하니 "나갈 때·들어올 때 중 추운 시간 체감온도"로 판단
+//     (흔한 "기온별 옷차림표"보다 2° 낮게 잡았다. 체감온도는 바람 때문에 보통 기온보다 낮아서,
+//      표대로 두면 한 단계 두껍게 나온다. 2025.10~2026.9 서울 날씨로 계절별 확인)
 // ideal: 가장 잘 맞는 온도. 여러 옷이 범위에 들면 ideal에 가까운 순으로 추천
 // everyday: 평소 많이 입는 옷. 범위에 들면 이 온도(°C)만큼 더 잘 맞는 것으로 보고 앞에 둔다
 // gender: 'f' 여성 옷, 'm' 남성 옷, 없으면 공용
@@ -59,21 +61,21 @@ export const CLOTHES = [
   { id: 'fleece-skirt', category: 'bottom', name: '기모 스타킹에 치마', emoji: '👗', range: [-10, 7], ideal: 2, gender: 'f' },
 
   // 겉옷 (no-outer = 겉옷 없음)
-  { id: 'no-outer', category: 'outer', name: '겉옷 없이', emoji: '🙅', range: [22, 45], ideal: 27 },
-  { id: 'cardigan', category: 'outer', name: '얇은 가디건', emoji: '🧥', range: [18, 24], ideal: 21 },
-  { id: 'windbreaker', category: 'outer', name: '바람막이', emoji: '🧥', range: [14, 21], ideal: 17.5, windproof: true },
-  { id: 'blazer', category: 'outer', name: '블레이저', emoji: '🧥', range: [14, 21], ideal: 17.5 },
-  { id: 'denim-jacket', category: 'outer', name: '청재킷', emoji: '🧥', range: [13, 20], ideal: 16.5 },
-  { id: 'trench', category: 'outer', name: '트렌치코트', emoji: '🧥', range: [10, 17], ideal: 13.5, windproof: true },
-  { id: 'leather', category: 'outer', name: '가죽 재킷', emoji: '🧥', range: [8, 14], ideal: 11, windproof: true },
-  { id: 'light-padding', category: 'outer', name: '경량 패딩', emoji: '🧥', range: [5, 12], ideal: 8.5 },
-  { id: 'coat', category: 'outer', name: '울 코트', emoji: '🧥', range: [0, 9], ideal: 5 },
-  { id: 'padding', category: 'outer', name: '패딩', emoji: '🧥', range: [-6, 4], ideal: -0.5, windproof: true },
-  { id: 'long-padding', category: 'outer', name: '롱패딩', emoji: '🧥', range: [-30, 0], ideal: -7, windproof: true },
+  { id: 'no-outer', category: 'outer', name: '겉옷 없이', emoji: '🙅', range: [20, 45], ideal: 25 },
+  { id: 'cardigan', category: 'outer', name: '얇은 가디건', emoji: '🧥', range: [16, 22], ideal: 19 },
+  { id: 'windbreaker', category: 'outer', name: '바람막이', emoji: '🧥', range: [12, 19], ideal: 15.5, windproof: true },
+  { id: 'blazer', category: 'outer', name: '블레이저', emoji: '🧥', range: [12, 19], ideal: 15.5 },
+  { id: 'denim-jacket', category: 'outer', name: '청재킷', emoji: '🧥', range: [11, 18], ideal: 14.5 },
+  { id: 'trench', category: 'outer', name: '트렌치코트', emoji: '🧥', range: [7, 15], ideal: 9.5, windproof: true, everyday: 1 },
+  { id: 'leather', category: 'outer', name: '가죽 재킷', emoji: '🧥', range: [6, 12], ideal: 9, windproof: true },
+  { id: 'light-padding', category: 'outer', name: '경량 패딩', emoji: '🧥', range: [2, 9], ideal: 5 },
+  { id: 'coat', category: 'outer', name: '울 코트', emoji: '🧥', range: [-2, 7], ideal: 3 },
+  { id: 'padding', category: 'outer', name: '패딩', emoji: '🧥', range: [-8, 2], ideal: -2.5, windproof: true },
+  { id: 'long-padding', category: 'outer', name: '롱패딩', emoji: '🧥', range: [-30, -2], ideal: -9, windproof: true },
 
   // 발열 내의
-  { id: 'no-innerwear', category: 'innerwear', name: '내의 없이', emoji: '🙅', range: [3, 45], ideal: 15 },
-  { id: 'innerwear', category: 'innerwear', name: '발열 내의', emoji: '🩲', range: [-30, 5], ideal: -5 },
+  { id: 'no-innerwear', category: 'innerwear', name: '내의 없이', emoji: '🙅', range: [1, 45], ideal: 13 },
+  { id: 'innerwear', category: 'innerwear', name: '발열 내의', emoji: '🩲', range: [-30, 3], ideal: -7 },
 ]
 
 /**
@@ -84,9 +86,14 @@ export const CLOTHES = [
 export function optionsFor(category, t, { windy = false, gender = 'any' } = {}) {
   const items = CLOTHES.filter((c) => c.category === category && (gender === 'any' || !c.gender || c.gender === gender))
   const fit = items.filter((c) => t >= c.range[0] && t <= c.range[1])
-  // 바람이 강하면 바람을 막아주는 겉옷을, 평소 많이 입는 옷은 늘 앞으로, 원피스는 뒤로
+  // 바람이 강하면 바람을 막아주는 겉옷을, 평소 많이 입는 옷은 늘 앞으로, 원피스는 뒤로.
+  // '모두 보기'에서는 남녀 공용 옷을 먼저, 성별 옷은 "이것도 괜찮아요"로
   const score = (c) =>
-    Math.abs(t - c.ideal) - (windy && c.windproof ? 3 : 0) - (c.everyday ?? 0) + (c.dress ? 100 : 0)
+    Math.abs(t - c.ideal) -
+    (windy && c.windproof ? 3 : 0) -
+    (c.everyday ?? 0) +
+    (c.dress ? 100 : 0) +
+    (gender === 'any' && c.gender ? 5 : 0)
   if (fit.length) return fit.sort((a, b) => score(a) - score(b))
 
   const distance = (c) => Math.min(Math.abs(t - c.range[0]), Math.abs(t - c.range[1]))
