@@ -90,10 +90,11 @@ export function colorCombos(date, { rainy, peakEff }) {
 
 // ---------- 2) 색 조합 페이지 ----------
 
+// 보여주는 순서: 포인트 → 기본 → 톤온톤 → 피할 조합
 export const MATCH_TYPES = {
+  point: { label: '포인트 조합', reason: '색이 대비돼서 생기 있고 눈에 띄어요' },
   basic: { label: '실패 없는 기본', reason: '어떤 날에도 무난하게 잘 어울려요' },
   tone: { label: '톤온톤', reason: '비슷한 계열이라 차분하고 세련돼 보여요' },
-  point: { label: '포인트 조합', reason: '색이 대비돼서 생기 있고 눈에 띄어요' },
   avoid: { label: '피하면 좋은 조합', reason: '비슷한 색이 겹치거나 서로 어색해 보여요' },
 }
 
@@ -214,7 +215,7 @@ const BOTTOM_IDS = new Set(BOTTOM_COLORS.map((c) => c.id))
  * @param side 'top' | 'bottom'  고른 색이 상의인지 하의인지
  * @param id   고른 색 id
  * @param tone 내 톤. 하의로 찾을 때(결과가 상의일 때) 톤에 맞는 상의를 앞으로
- * @returns [{ color, type }]  반대쪽에 어울리는 색 (기본 → 톤온톤 → 포인트 → 피할 조합 순)
+ * @returns [{ color, type }]  반대쪽에 어울리는 색 (포인트 → 기본 → 톤온톤 → 피할 조합 순)
  */
 export function matchesFor(side, id, tone = 'unknown') {
   const order = Object.keys(MATCH_TYPES)
