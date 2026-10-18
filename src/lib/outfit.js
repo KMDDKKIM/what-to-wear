@@ -59,7 +59,7 @@ function weatherAt(hours, t) {
 /**
  * @param day   fetchWeather()가 돌려준 하루치 (자정을 넘는 외출이면 outing.js의 joinDays로 이어 붙인 것)
  * @param opts    { leave: '08:00', back: '19:00', sensitivity: 'normal', gender: 'any' }
- *                leave·back은 소수 시간(17.5)도 된다 ('지금 나가면' 탭)
+ *                leave·back은 소수 시간(17.5)도 된다 ('지금' 탭)
  * @param adjust  피드백으로 학습한 보정값 { peak, cold } (°C, feedback.js)
  */
 export function buildPlan(day, { leave, back, sensitivity = 'normal', gender = 'any' }, adjust = { peak: 0, cold: 0 }) {

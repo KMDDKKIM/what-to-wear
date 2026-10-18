@@ -56,7 +56,7 @@ export default function App() {
   const [settings, setSettings] = useState(loadSettings)
   const [dayIndex, setDayIndex] = useState(() => defaultDayIndex(loadSettings().back))
   const [now, setNow] = useState(() => new Date())
-  const [returnKey, setReturnKey] = useState(null) // '지금 나가면'에서 고른 들어올 시간 (null = 기본)
+  const [returnKey, setReturnKey] = useState(null) // '지금'에서 고른 들어올 시간 (null = 기본)
   const [refreshKey, setRefreshKey] = useState(0)
   const [page, setPage] = useState('weather') // 'weather' | 'colors'
   const [days, setDays] = useState(null)
@@ -109,7 +109,7 @@ export default function App() {
     }
   }, [settings.back])
 
-  // '지금 나가면': 지금 나가서 고른 시간에 들어온다 (자정을 넘으면 내일 날씨까지 이어 봄)
+  // '지금': 지금 나가서 고른 시간에 들어온다 (자정을 넘으면 내일 날씨까지 이어 봄)
   const leaveNow = outingLeave(now, settings)
   const backOptions = returnOptions(leaveNow, settings)
   const backChoice =
@@ -277,7 +277,7 @@ export default function App() {
       )}
 
       <div className="tabs">
-        {['지금 나가면', '내일'].map((label, i) => (
+        {['지금', '내일'].map((label, i) => (
           <button
             key={label}
             className={`tab ${page === 'weather' && dayIndex === i ? 'on' : ''}`}
