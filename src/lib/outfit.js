@@ -33,10 +33,10 @@ export function timeToHour(hhmm) {
   return h + m / 60
 }
 
-/** 8.5 → "8시 30분", 13 → "오후 1시" */
+/** 8.5 → "8시 30분", 13 → "오후 1시". 24 이상은 다음 날 (25 → "오전 1시") */
 export function formatHour(t) {
-  const h = Math.floor(t)
-  const m = Math.round((t - h) * 60)
+  const m = Math.round((t - Math.floor(t)) * 60)
+  const h = Math.floor(t) % 24
   const ampm = h < 12 ? '오전' : '오후'
   const h12 = h % 12 === 0 ? 12 : h % 12
   return `${ampm} ${h12}시${m ? ` ${m}분` : ''}`
@@ -44,7 +44,7 @@ export function formatHour(t) {
 
 // 시간 t(소수)의 날씨. 기온은 앞뒤 시간을 보간한다.
 function weatherAt(hours, t) {
-  const h = Math.min(Math.floor(t), 23)
+  const h = Math.min(Math.floor(t), hours.length - 1)
   const a = hours[h]
   const b = hours[h + 1] ?? a
   const f = t - h
@@ -57,14 +57,17 @@ function weatherAt(hours, t) {
 }
 
 /**
- * @param day   fetchWeather()가 돌려준 하루치
+ * @param day   fetchWeather()가 돌려준 하루치 (자정을 넘는 외출이면 outing.js의 joinDays로 이어 붙인 것)
  * @param opts    { leave: '08:00', back: '19:00', sensitivity: 'normal', gender: 'any' }
+ *                leave·back은 소수 시간(17.5)도 된다 ('지금 나가면' 탭)
  * @param adjust  피드백으로 학습한 보정값 { peak, cold } (°C, feedback.js)
  */
 export function buildPlan(day, { leave, back, sensitivity = 'normal', gender = 'any' }, adjust = { peak: 0, cold: 0 }) {
   const offset = SENSITIVITY[sensitivity]?.offset ?? 0
-  const start = timeToHour(leave)
-  const end = timeToHour(back)
+  const start = typeof leave === 'number' ? leave : timeToHour(leave)
+  const end = typeof back === 'number' ? back : timeToHour(back)
+  // 오후 3시 넘어 나가면 '낮'이 없으니 '가장 따뜻할 때'라고 부른다
+  const daytime = start < 15
   const hours = day.hours
 
   const leaveW = weatherAt(hours, start)
@@ -109,15 +112,15 @@ export function buildPlan(day, { leave, back, sensitivity = 'normal', gender = '
   return {
     moments: [
       { key: 'leave', label: '나갈 때', ...summarize(leaveW) },
-      { key: 'peak', label: '낮 최고', ...summarize(peakW) },
+      { key: 'peak', label: daytime ? '낮 최고' : '가장 따뜻할 때', ...summarize(peakW) },
       { key: 'back', label: '들어올 때', ...summarize(backW) },
     ],
     pieces,
     outfit,
     colors: colorCombos(day.date, { rainy: maxRain >= 50, peakEff }),
     swing: round(swing),
-    headline: makeHeadline({ outfit, swing, peakW, coldW }),
-    worries: makeWorries({ outfit, swing, peakW, coldW, peakEff, commuteWind }),
+    headline: makeHeadline({ outfit, swing, peakW, coldW, daytime }),
+    worries: makeWorries({ outfit, swing, peakW, coldW, peakEff, commuteWind, daytime }),
     items: makeItems({ maxRain, maxUv, maxWind, peakEff, coldEff, dust, outer: outfit.outer }),
     dust,
     stayHours: stay,
@@ -134,18 +137,18 @@ function summarize(w) {
   }
 }
 
-function makeHeadline({ outfit, swing, peakW, coldW }) {
+function makeHeadline({ outfit, swing, peakW, coldW, daytime }) {
   const { top, bottom, outer, innerwear } = outfit
   const base = `${top.name}에 ${bottom.name}`
   const inner = innerwear ? ' 발열 내의도 챙겨 입으세요.' : ''
   if (!outer) return `${base}, 겉옷 없이 충분해요.`
   if (swing >= 8) {
-    return `체감온도가 ${coldW.label}는 ${round(coldW.feels)}°, 낮엔 ${round(peakW.feels)}°까지 올라가요. 안에는 ${base}, 겉옷은 벗기 쉬운 ${outer.name}!${inner}`
+    return `체감온도가 ${coldW.label}는 ${round(coldW.feels)}°, ${daytime ? '낮엔' : '가장 따뜻할 땐'} ${round(peakW.feels)}°까지 올라가요. 안에는 ${base}, 겉옷은 벗기 쉬운 ${outer.name}!${inner}`
   }
   return `${base}, 위에 ${josa(outer.name, '을', '를')} 걸치세요.${inner}`
 }
 
-function makeWorries({ outfit, swing, peakW, coldW, peakEff, commuteWind }) {
+function makeWorries({ outfit, swing, peakW, coldW, peakEff, commuteWind, daytime }) {
   const { top, outer, innerwear } = outfit
   const peakTime = formatHour(peakW.time)
 
@@ -156,9 +159,9 @@ function makeWorries({ outfit, swing, peakW, coldW, peakEff, commuteWind }) {
   } else if (peakEff < 12) {
     // 추운 날의 "더위" 걱정은 실내 난방 때문
     const layer = innerwear ? `발열 내의 위에 ${top.name}` : top.name
-    hot = `바깥은 낮에도 체감 ${round(peakW.feels)}°로 쌀쌀하지만, 실내는 난방이 돼요. 두꺼운 옷 한 벌보다 ${layer}처럼 겹쳐 입어야 실내에서 덥지 않아요.`
+    hot = `바깥은 ${daytime ? '낮에도' : '가장 따뜻할 때도'} 체감 ${round(peakW.feels)}°로 쌀쌀하지만, 실내는 난방이 돼요. 두꺼운 옷 한 벌보다 ${layer}처럼 겹쳐 입어야 실내에서 덥지 않아요.`
   } else if (outer && swing >= 8) {
-    hot = `${peakTime}엔 체감 ${round(peakW.feels)}°예요. 낮엔 겉옷을 벗고 ${top.name}만 입어도 덥지 않아요. 벗어서 들고 다니기 쉬운 겉옷이 좋아요.`
+    hot = `${peakTime}엔 체감 ${round(peakW.feels)}°예요. ${daytime ? '낮엔' : '그때는'} 겉옷을 벗고 ${top.name}만 입어도 덥지 않아요. 벗어서 들고 다니기 쉬운 겉옷이 좋아요.`
   } else {
     hot = `가장 따뜻한 ${peakTime}에도 체감 ${round(peakW.feels)}°예요. ${josa(top.name, '이면', '면')} 덥지 않아요.`
   }
@@ -175,7 +178,7 @@ function makeWorries({ outfit, swing, peakW, coldW, peakEff, commuteWind }) {
   if (commuteWind >= 5) cold += ` 바람이 초속 ${round(commuteWind)}m로 강해서 더 춥게 느껴질 수 있어요.`
 
   return [
-    { emoji: '🥵', q: '낮에 덥지 않을까?', a: hot },
+    { emoji: '🥵', q: daytime ? '낮에 덥지 않을까?' : '나가 있는 동안 덥지 않을까?', a: hot },
     { emoji: '🥶', q: '오갈 때 춥지 않을까?', a: cold },
   ]
 }

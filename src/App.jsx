@@ -8,6 +8,7 @@ import PlaceSearch from './PlaceSearch.jsx'
 import InstallBanner from './InstallBanner.jsx'
 import { placeNameAt } from './lib/geocode.js'
 import { loadFeedback, saveFeedback, learnedAdjust, describeAdjust } from './lib/feedback.js'
+import { hourOf, outingLeave, returnOptions, defaultReturnKey, joinDays } from './lib/outing.js'
 
 const DEFAULT_SETTINGS = {
   leave: '08:00',
@@ -39,9 +40,8 @@ function saveSettings(settings) {
   }
 }
 
-function isAfterBack(back) {
-  const now = new Date()
-  return now.getHours() + now.getMinutes() / 60 >= timeToHour(back)
+function isAfterBack(back, now = new Date()) {
+  return hourOf(now) >= timeToHour(back)
 }
 
 // 집에 들어올 시간이 지났으면 내일 옷을 준비할 시간
@@ -49,9 +49,15 @@ function defaultDayIndex(back) {
   return isAfterBack(back) ? 1 : 0
 }
 
+// 앱을 30분 넘게 안 보다가 다시 열면 지금 시각 기준으로 처음부터 (날씨도 새로)
+const STALE_MS = 30 * 60 * 1000
+
 export default function App() {
   const [settings, setSettings] = useState(loadSettings)
   const [dayIndex, setDayIndex] = useState(() => defaultDayIndex(loadSettings().back))
+  const [now, setNow] = useState(() => new Date())
+  const [returnKey, setReturnKey] = useState(null) // '지금 나가면'에서 고른 들어올 시간 (null = 기본)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [page, setPage] = useState('weather') // 'weather' | 'colors'
   const [days, setDays] = useState(null)
   const [error, setError] = useState(null)
@@ -76,19 +82,60 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [settings.lat, settings.lon])
+  }, [settings.lat, settings.lon, refreshKey])
+
+  // 지금 시각은 1분마다, 그리고 앱으로 돌아올 때 새로 잰다
+  useEffect(() => {
+    let hiddenAt = null
+    const tick = () => setNow(new Date())
+    const onVisible = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now()
+        return
+      }
+      tick()
+      if (hiddenAt && Date.now() - hiddenAt > STALE_MS) {
+        setDayIndex(defaultDayIndex(settings.back))
+        setReturnKey(null)
+        setRefreshKey((k) => k + 1)
+      }
+      hiddenAt = null
+    }
+    const timer = setInterval(tick, 60 * 1000)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [settings.back])
+
+  // '지금 나가면': 지금 나가서 고른 시간에 들어온다 (자정을 넘으면 내일 날씨까지 이어 봄)
+  const leaveNow = outingLeave(now, settings)
+  const backOptions = returnOptions(leaveNow, settings)
+  const backChoice =
+    backOptions.find((o) => o.key === returnKey) ?? backOptions.find((o) => o.key === defaultReturnKey(backOptions, leaveNow))
+  const outing = { ...settings, leave: leaveNow, back: backChoice.back }
 
   const day = days?.[dayIndex]
+  const planDay = useMemo(() => (day && dayIndex === 0 ? joinDays(days[0], days[1]) : day), [days, day, dayIndex])
   // 그날보다 이전 피드백만 반영 (오늘 남긴 피드백은 내일 추천부터)
   const adjust = useMemo(() => {
     if (!day) return { peak: 0, cold: 0 }
     return learnedAdjust(Object.fromEntries(Object.entries(feedback).filter(([date]) => date < day.date)))
   }, [day, feedback])
-  const plan = useMemo(() => (day ? buildPlan(day, settings, adjust) : null), [day, settings, adjust])
+  const plan = useMemo(
+    () => (planDay ? buildPlan(planDay, dayIndex === 0 ? outing : settings, adjust) : null),
+    [planDay, dayIndex, settings, adjust, leaveNow, backChoice.back], // outing은 이 값들로 정해진다
+  )
 
   const today = days?.[0]
   const todayPlan = useMemo(() => (today ? buildPlan(today, settings) : null), [today, settings])
-  const afterBack = isAfterBack(settings.back)
+  const afterBack = isAfterBack(settings.back, now)
+  const leavingNow = dayIndex === 0 && leaveNow > timeToHour(settings.leave)
+  // 저녁 외출처럼 나갈 때·들어올 때가 가장 따뜻하면 같은 카드가 두 번 나오니 뺀다
+  const moments = (plan?.moments ?? []).filter((m, _, [leave, , back]) => {
+    return m.key !== 'peak' || (m.time !== leave.time && m.time !== back.time)
+  })
   const adjustText = describeAdjust(learnedAdjust(feedback))
 
   const setTodayFeedback = (entry) => {
@@ -230,7 +277,7 @@ export default function App() {
       )}
 
       <div className="tabs">
-        {['오늘', '내일'].map((label, i) => (
+        {['지금 나가면', '내일'].map((label, i) => (
           <button
             key={label}
             className={`tab ${page === 'weather' && dayIndex === i ? 'on' : ''}`}
@@ -250,11 +297,28 @@ export default function App() {
       {page === 'colors' && (
         <ColorPage
           plan={plan}
-          dayLabel={dayIndex === 0 ? '오늘' : '내일'}
+          dayLabel={dayIndex === 0 ? '지금' : '내일'}
           gender={settings.gender}
           tone={settings.tone}
           onTone={(tone) => update({ tone })}
         />
+      )}
+
+      {page === 'weather' && dayIndex === 0 && (
+        <div className="return-pick">
+          <span>들어올 때</span>
+          <div className="chips">
+            {backOptions.map((o) => (
+              <button
+                key={o.key}
+                className={`chip ${o.key === backChoice.key ? 'on' : ''}`}
+                onClick={() => setReturnKey(o.key)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {page === 'weather' && error && <p className="error">{error}</p>}
@@ -287,11 +351,11 @@ export default function App() {
             </div>
           </section>
 
-          <section className="moments">
-            {plan.moments.map((m) => (
+          <section className="moments" style={{ gridTemplateColumns: `repeat(${moments.length}, 1fr)` }}>
+            {moments.map((m) => (
               <div key={m.key} className={`moment ${m.key}`}>
                 <span className="m-label">{m.label}</span>
-                <span className="m-time">{m.timeText}</span>
+                <span className="m-time">{leavingNow && m.key === 'leave' ? '지금' : m.timeText}</span>
                 <span className="m-emoji">{m.weather.emoji}</span>
                 <span className="m-temp">{m.temp}°</span>
                 <span className="m-feels">체감 {m.feels}°</span>
@@ -364,7 +428,7 @@ function Timeline({ hours: all }) {
               <div className="t-bar" style={{ height: `${20 + ratio * 80}%` }} />
             </div>
             <span className="t-emoji">{describeWeather(h.code).emoji}</span>
-            <span className="t-hour">{h.hour}시</span>
+            <span className="t-hour">{h.hour % 24}시</span>
             {h.rainProb >= 30 && <span className="t-rain">{h.rainProb}%</span>}
           </div>
         )
