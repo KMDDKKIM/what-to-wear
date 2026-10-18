@@ -295,31 +295,43 @@ h2 {
   padding: 10px;
 }
 
-/* 피드백 */
+/* 피드백: 추천 내용이 가려지지 않게 작게 */
+.card.feedback {
+  padding: 12px 14px;
+}
+
 .feedback h2 {
-  margin-bottom: 4px;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.feedback .hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 6px 0 0;
 }
 
 .rating-buttons {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 6px;
 }
 
 .rating {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   border: 1px solid var(--border);
   background: var(--bg);
-  border-radius: 14px;
-  padding: 12px 4px;
+  border-radius: 999px;
+  padding: 6px 4px;
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .rating-emoji {
-  font-size: 28px;
+  font-size: 16px;
 }
 
 .feedback-done {
@@ -345,7 +357,7 @@ h2 {
 .when {
   display: grid;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .when-label {
@@ -353,8 +365,8 @@ h2 {
   font-weight: 700;
 }
 
-.thanks {
-  margin: 10px 0 0;
+.feedback .thanks {
+  margin: 8px 0 0;
 }
 
 .adjust {
