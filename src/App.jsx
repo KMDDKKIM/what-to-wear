@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchWeather, describeWeather } from './lib/weather.js'
-import { buildPlan, timeToHour, SENSITIVITY } from './lib/outfit.js'
+import { buildPlan, lateNote, timeToHour, SENSITIVITY } from './lib/outfit.js'
 import { CATEGORIES, GENDERS } from './lib/clothes.js'
 import ColorPage from './ColorPage.jsx'
 import FeedbackCard from './FeedbackCard.jsx'
@@ -8,7 +8,7 @@ import PlaceSearch from './PlaceSearch.jsx'
 import InstallBanner from './InstallBanner.jsx'
 import { placeNameAt } from './lib/geocode.js'
 import { loadFeedback, saveFeedback, learnedAdjust, describeAdjust } from './lib/feedback.js'
-import { hourOf, outingLeave, returnOptions, defaultReturnKey, joinDays } from './lib/outing.js'
+import { hourOf, outingLeave, outingBack, lateBack, joinDays } from './lib/outing.js'
 
 const DEFAULT_SETTINGS = {
   leave: '08:00',
@@ -56,7 +56,6 @@ export default function App() {
   const [settings, setSettings] = useState(loadSettings)
   const [dayIndex, setDayIndex] = useState(() => defaultDayIndex(loadSettings().back))
   const [now, setNow] = useState(() => new Date())
-  const [returnKey, setReturnKey] = useState(null) // '지금'에서 고른 들어올 시간 (null = 기본)
   const [refreshKey, setRefreshKey] = useState(0)
   const [page, setPage] = useState('weather') // 'weather' | 'colors'
   const [days, setDays] = useState(null)
@@ -96,7 +95,6 @@ export default function App() {
       tick()
       if (hiddenAt && Date.now() - hiddenAt > STALE_MS) {
         setDayIndex(defaultDayIndex(settings.back))
-        setReturnKey(null)
         setRefreshKey((k) => k + 1)
       }
       hiddenAt = null
@@ -109,12 +107,10 @@ export default function App() {
     }
   }, [settings.back])
 
-  // '지금': 지금 나가서 고른 시간에 들어온다 (자정을 넘으면 내일 날씨까지 이어 봄)
+  // '지금': 지금 나가서 평소처럼 들어온다 (자정을 넘으면 내일 날씨까지 이어 봄)
   const leaveNow = outingLeave(now, settings)
-  const backOptions = returnOptions(leaveNow, settings)
-  const backChoice =
-    backOptions.find((o) => o.key === returnKey) ?? backOptions.find((o) => o.key === defaultReturnKey(backOptions, leaveNow))
-  const outing = { ...settings, leave: leaveNow, back: backChoice.back }
+  const backNow = outingBack(leaveNow, settings)
+  const outing = { ...settings, leave: leaveNow, back: backNow }
 
   const day = days?.[dayIndex]
   const planDay = useMemo(() => (day && dayIndex === 0 ? joinDays(days[0], days[1]) : day), [days, day, dayIndex])
@@ -125,8 +121,14 @@ export default function App() {
   }, [day, feedback])
   const plan = useMemo(
     () => (planDay ? buildPlan(planDay, dayIndex === 0 ? outing : settings, adjust) : null),
-    [planDay, dayIndex, settings, adjust, leaveNow, backChoice.back], // outing은 이 값들로 정해진다
+    [planDay, dayIndex, settings, adjust, leaveNow, backNow], // outing은 이 값들로 정해진다
   )
+  // 밤늦게 들어오면 옷이 달라지는지 ('지금' 탭만)
+  const late = useMemo(() => {
+    const lateTime = lateBack(backNow)
+    if (!planDay || dayIndex !== 0 || lateTime == null) return null
+    return lateNote(plan, buildPlan(planDay, { ...outing, back: lateTime }, adjust))
+  }, [plan]) // plan이 바뀔 때만 다시 (나머지 값은 plan을 만든 값과 같다)
 
   const today = days?.[0]
   const todayPlan = useMemo(() => (today ? buildPlan(today, settings) : null), [today, settings])
@@ -304,23 +306,6 @@ export default function App() {
         />
       )}
 
-      {page === 'weather' && dayIndex === 0 && (
-        <div className="return-pick">
-          <span>들어올 때</span>
-          <div className="chips">
-            {backOptions.map((o) => (
-              <button
-                key={o.key}
-                className={`chip ${o.key === backChoice.key ? 'on' : ''}`}
-                onClick={() => setReturnKey(o.key)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {page === 'weather' && error && <p className="error">{error}</p>}
       {page === 'weather' && !plan && !error && <p className="loading">날씨를 살펴보는 중…</p>}
 
@@ -364,7 +349,7 @@ export default function App() {
           </section>
 
           <section className="worries">
-            {plan.worries.map((w) => (
+            {[...plan.worries, ...(late ? [late] : [])].map((w) => (
               <div key={w.q} className="card worry">
                 <p className="q">
                   {w.emoji} {w.q}

@@ -37,7 +37,7 @@ export function timeToHour(hhmm) {
 export function formatHour(t) {
   const m = Math.round((t - Math.floor(t)) * 60)
   const h = Math.floor(t) % 24
-  const ampm = h < 12 ? '오전' : '오후'
+  const ampm = h === 0 ? '밤' : h < 12 ? '오전' : '오후' // 자정은 '밤 12시'
   const h12 = h % 12 === 0 ? 12 : h % 12
   return `${ampm} ${h12}시${m ? ` ${m}분` : ''}`
 }
@@ -181,6 +181,28 @@ function makeWorries({ outfit, swing, peakW, coldW, peakEff, commuteWind, daytim
     { emoji: '🥵', q: daytime ? '낮에 덥지 않을까?' : '나가 있는 동안 덥지 않을까?', a: hot },
     { emoji: '🥶', q: '오갈 때 춥지 않을까?', a: cold },
   ]
+}
+
+/**
+ * '지금' 탭의 '밤늦게 들어온다면?' 카드
+ * @param plan      평소대로 들어올 때 추천
+ * @param latePlan  같은 조건에 들어올 시간만 밤늦게로 바꾼 추천 (더 추우면 겉옷이 바뀐다)
+ */
+export function lateNote(plan, latePlan) {
+  const { timeText, feels } = latePlan.moments[2]
+  const outer = plan.outfit.outer
+  const lateOuter = latePlan.outfit.outer
+  const outerChanged = lateOuter && lateOuter.id !== outer?.id
+  const innerwear = latePlan.outfit.innerwear && !plan.outfit.innerwear
+  if (!outerChanged && !innerwear) {
+    return { emoji: '🌙', q: '밤늦게 들어온다면?', a: `${timeText}쯤에도 체감 ${feels}°라 이대로 괜찮아요.` }
+  }
+  let a = `${timeText}쯤엔 체감 ${feels}°까지 내려가요.`
+  if (outerChanged) {
+    a += outer ? ` ${outer.name}보다 따뜻한 ${josa(lateOuter.name, '이', '가')} 좋아요.` : ` ${josa(lateOuter.name, '을', '를')} 챙기세요.`
+  }
+  if (innerwear) a += ' 발열 내의도 입으면 든든해요.'
+  return { emoji: '🌙', q: '밤늦게 들어온다면?', a }
 }
 
 function makeItems({ maxRain, maxUv, maxWind, peakEff, coldEff, dust, outer }) {
