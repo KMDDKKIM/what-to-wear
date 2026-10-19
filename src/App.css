@@ -805,17 +805,23 @@ button.match-card:active {
   color: var(--muted);
 }
 
-/* 걱정 카드 */
-.worry .q {
-  font-weight: 700;
-  margin: 0 0 6px;
+/* 한 줄 팁 (특별한 날에만) */
+.tips {
+  display: grid;
+  gap: 10px;
 }
 
-.worry .a {
+.tip {
+  display: flex;
+  gap: 8px;
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.55;
   font-size: 15px;
   word-break: keep-all;
+}
+
+.tip-emoji {
+  flex: none;
 }
 
 /* 준비물 */

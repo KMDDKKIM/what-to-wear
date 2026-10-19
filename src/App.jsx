@@ -348,16 +348,17 @@ export default function App() {
             ))}
           </section>
 
-          <section className="worries">
-            {[...plan.worries, ...(late ? [late] : [])].map((w) => (
-              <div key={w.q} className="card worry">
-                <p className="q">
-                  {w.emoji} {w.q}
+          {/* 꼭 알아야 할 게 있는 날에만 한 줄 팁 */}
+          {(plan.tips.length > 0 || late) && (
+            <section className="card tips">
+              {[...plan.tips, ...(late ? [late] : [])].map((t) => (
+                <p key={t.text} className="tip">
+                  <span className="tip-emoji">{t.emoji}</span>
+                  <span>{t.text}</span>
                 </p>
-                <p className="a">{w.a}</p>
-              </div>
-            ))}
-          </section>
+              ))}
+            </section>
+          )}
 
           {plan.items.length > 0 && (
             <section className="card">

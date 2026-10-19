@@ -120,7 +120,7 @@ export function buildPlan(day, { leave, back, sensitivity = 'normal', gender = '
     colors: colorCombos(day.date, { rainy: maxRain >= 50, peakEff }),
     swing: round(swing),
     headline: makeHeadline({ outfit, swing, peakW, coldW, daytime }),
-    worries: makeWorries({ outfit, swing, peakW, coldW, peakEff, commuteWind, daytime }),
+    tips: makeTips({ outfit, swing, peakW, coldW, peakEff, coldEff, commuteWind, daytime }),
     items: makeItems({ maxRain, maxUv, maxWind, peakEff, coldEff, dust, outer: outfit.outer }),
     dust,
     stayHours: stay,
@@ -148,39 +148,28 @@ function makeHeadline({ outfit, swing, peakW, coldW, daytime }) {
   return `${base}, 위에 ${josa(outer.name, '을', '를')} 걸치세요.${inner}`
 }
 
-function makeWorries({ outfit, swing, peakW, coldW, peakEff, commuteWind, daytime }) {
+// 위 추천만으로는 알 수 없는, 평소와 다른 날에만 한 줄 팁 (평범한 날엔 없음)
+// 기준은 2025.10~2026.9 서울 날씨로 확인: 매일 나오면 아무도 안 읽으니 드문 날에만
+function makeTips({ outfit, swing, peakW, coldW, peakEff, coldEff, commuteWind, daytime }) {
   const { top, outer, innerwear } = outfit
-  const peakTime = formatHour(peakW.time)
-
-  // 걱정 1: 낮에 덥지 않을까?
-  let hot
-  if (peakEff >= 28) {
-    hot = `${peakTime}에 체감 ${round(peakW.feels)}°까지 올라가 더워요. 린넨·면처럼 통풍 잘 되는 소재가 좋아요.`
-  } else if (peakEff < 12) {
-    // 추운 날의 "더위" 걱정은 실내 난방 때문
+  const tips = []
+  // 폭염 (폭염주의보 기준 33°)
+  if (peakEff >= 33) {
+    tips.push({ emoji: '🥵', text: `${formatHour(peakW.time)}엔 체감 ${round(peakW.feels)}°까지 올라가요. 린넨·면처럼 통풍 잘 되는 소재가 좋아요.` })
+  }
+  // 한파: 밖은 아주 춥지만 실내는 난방이 되니 겹쳐 입기
+  if (coldEff <= -10) {
     const layer = innerwear ? `발열 내의 위에 ${top.name}` : top.name
-    hot = `바깥은 ${daytime ? '낮에도' : '가장 따뜻할 때도'} 체감 ${round(peakW.feels)}°로 쌀쌀하지만, 실내는 난방이 돼요. 두꺼운 옷 한 벌보다 ${layer}처럼 겹쳐 입어야 실내에서 덥지 않아요.`
-  } else if (outer && swing >= 8) {
-    hot = `${peakTime}엔 체감 ${round(peakW.feels)}°예요. ${daytime ? '낮엔' : '그때는'} 겉옷을 벗고 ${top.name}만 입어도 덥지 않아요. 벗어서 들고 다니기 쉬운 겉옷이 좋아요.`
-  } else {
-    hot = `가장 따뜻한 ${peakTime}에도 체감 ${round(peakW.feels)}°예요. ${josa(top.name, '이면', '면')} 덥지 않아요.`
+    tips.push({ emoji: '🏠', text: `${coldW.label} 체감 ${round(coldW.feels)}°로 아주 추워요. 실내는 난방이 되니 두꺼운 옷 한 벌보다 ${layer}처럼 겹쳐 입으세요.` })
   }
-
-  // 걱정 2: 오갈 때 춥지 않을까?
-  let cold
-  const coldTime = `${coldW.label}(${formatHour(coldW.time)})`
-  if (!outer) {
-    cold = `가장 쌀쌀한 ${coldTime}에도 체감 ${round(coldW.feels)}°라 겉옷 없이도 괜찮아요.`
-  } else {
-    cold = `가장 추운 ${coldTime}는 체감 ${round(coldW.feels)}°예요. ${josa(outer.name, '을', '를')} 입으면 따뜻해요.`
+  // 일교차가 아주 큰 날
+  if (outer && swing >= 12) {
+    tips.push({ emoji: '🧥', text: `일교차가 ${round(swing)}°나 돼요. ${daytime ? '낮엔' : '따뜻할 땐'} 겉옷을 벗고 ${top.name}만 입어도 덥지 않아요.` })
   }
-  if (innerwear) cold += ' 발열 내의까지 입으면 든든해요.'
-  if (commuteWind >= 5) cold += ` 바람이 초속 ${round(commuteWind)}m로 강해서 더 춥게 느껴질 수 있어요.`
-
-  return [
-    { emoji: '🥵', q: daytime ? '낮에 덥지 않을까?' : '나가 있는 동안 덥지 않을까?', a: hot },
-    { emoji: '🥶', q: '오갈 때 춥지 않을까?', a: cold },
-  ]
+  if (commuteWind >= 5) {
+    tips.push({ emoji: '🌬️', text: `오갈 때 바람이 초속 ${round(commuteWind)}m로 강해서 더 춥게 느껴질 수 있어요.` })
+  }
+  return tips
 }
 
 /**
@@ -194,15 +183,14 @@ export function lateNote(plan, latePlan) {
   const lateOuter = latePlan.outfit.outer
   const outerChanged = lateOuter && lateOuter.id !== outer?.id
   const innerwear = latePlan.outfit.innerwear && !plan.outfit.innerwear
-  if (!outerChanged && !innerwear) {
-    return { emoji: '🌙', q: '밤늦게 들어온다면?', a: `${timeText}쯤에도 체감 ${feels}°라 이대로 괜찮아요.` }
-  }
-  let a = `${timeText}쯤엔 체감 ${feels}°까지 내려가요.`
+  // 이대로 괜찮으면 굳이 말하지 않는다
+  if (!outerChanged && !innerwear) return null
+  let a = `밤늦게 들어온다면, ${timeText}쯤엔 체감 ${feels}°까지 내려가요.`
   if (outerChanged) {
     a += outer ? ` ${outer.name}보다 따뜻한 ${josa(lateOuter.name, '이', '가')} 좋아요.` : ` ${josa(lateOuter.name, '을', '를')} 챙기세요.`
   }
   if (innerwear) a += ' 발열 내의도 입으면 든든해요.'
-  return { emoji: '🌙', q: '밤늦게 들어온다면?', a }
+  return { emoji: '🌙', text: a }
 }
 
 function makeItems({ maxRain, maxUv, maxWind, peakEff, coldEff, dust, outer }) {
