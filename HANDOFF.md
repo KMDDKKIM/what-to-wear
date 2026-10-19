@@ -9,7 +9,7 @@
 
 - **사이트**: https://kmddkkim.github.io/what-to-wear/
 - **저장소**: https://github.com/KMDDKKIM/what-to-wear (공개)
-- **마지막 작업**: 2026-10-18 ('지금' 탭 — 로컬 커밋만, 사이트엔 아직 안 올림)
+- **마지막 작업**: 2026-10-19 (한 줄 팁으로 바꿈. '지금' 탭과 함께 사이트에 올림)
 
 ---
 
